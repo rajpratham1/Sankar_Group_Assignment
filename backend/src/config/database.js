@@ -11,6 +11,14 @@ if (useInMemoryDb) {
   const adapter = db.adapters.createPg();
   pool = new adapter.Pool();
   console.log("Using in-memory PostgreSQL-compatible database");
+} else if (process.env.DATABASE_URL) {
+  const connectionString = process.env.DATABASE_URL;
+  const isLocalhost = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+  pool = new Pool({
+    connectionString,
+    ssl: isLocalhost ? false : { rejectUnauthorized: false },
+  });
+  console.log("Using database connection string (DATABASE_URL)");
 } else {
   pool = new Pool({
     host: process.env.DB_HOST || "localhost",

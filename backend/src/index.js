@@ -7,9 +7,23 @@ const leadRoutes = require("./routes/leadRoutes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+const allowedOrigins = [
+  clientUrl,
+  clientUrl.endsWith("/") ? clientUrl.slice(0, -1) : `${clientUrl}/`
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
@@ -49,4 +63,13 @@ const start = async () => {
   }
 };
 
-start();
+if (require.main === module) {
+  start();
+} else {
+  // Ensure database tables exist in serverless environment
+  createLeadsTable()
+    .then(() => console.log("Database table verification completed"))
+    .catch((err) => console.error("Database initialization failed in serverless mode:", err));
+}
+
+module.exports = app;
